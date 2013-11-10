@@ -1,55 +1,70 @@
+import java.util.Hashtable;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 public class Driver {
-	static MapView map;
-	
+	static MapView mapView;
+	static Hashtable<Road, IntersectionPair> roads;
+	static Hashtable<String, RoadIntersection> intersections;
 	public static void main(String[] args) {
-		
-		
+
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				map = new MapView();
-			
+				mapView = new MapView();
+
 			}
 		});
-		
-		SwingWorker<Integer, Void> parseWorker = new SwingWorker<Integer, Void>() {
+
+		SwingWorker<Map, Void> parseWorker = new SwingWorker<Map, Void>() {
 
 			@Override
-			protected Integer doInBackground() throws Exception {
-			
+			protected Map doInBackground() throws Exception {
+
 				MapParser mp = new MapParser("monroe-county.tab");
-				
-				if(mp.parse())
-					return mp.getTotalLines();
+
+				if (mp.parse())
+					return new Map(mp.getRoads(), mp.getRoadIntersections());
 				else {
-					return -1;
+					return new Map(null, null);
 				}
 			}
+
 			protected void done() {
-				    
-				    int totalLines;
-				    try {
-				     totalLines = get();
-				     if (totalLines > 0)
-				    	 map.setStatus("Total lines parsed: "+totalLines);
-				     else
-				    	 map.setStatus("Couldn't parse file");
-				   //  map.hideLoadingLabel();
-				     
-				    } catch (InterruptedException e) {
-				     // This is thrown if the thread's interrupted.
-				    } catch (ExecutionException e) {
-				     // This is thrown if we throw an exception
-				     // from doInBackground.
-				    }
-				   }
+
+				Map map;
+				try {
+					map = get();
+					if (!map.isEmpty()) {
+						mapView.setStatus("Map parsed.");
+						roads = new Hashtable<Road, IntersectionPair>();
+						intersections = new Hashtable<String, RoadIntersection>();
+						for (RoadIntersection ri : map.getRoadIntersections()) {
+							intersections.put(ri.getId(), ri);
+						}
+						for (Road r : map.getRoads()) {
+							roads.put(r, new IntersectionPair(
+										intersections.get(r.getIntersectionIdA()),
+										intersections.get(r.getIntersectionIdB())));
+						}
+						mapView.draw(map.getRoads(), roads);
+						
+						
+					} else {
+						mapView.setStatus("Couldn't parse file");
+					}
+
+				} catch (InterruptedException e) {
+
+				} catch (ExecutionException e) {
+
+				}
+				
+			}
 		};
-		
+
 		parseWorker.execute();
-			
+
 	}
 }

@@ -20,7 +20,17 @@ public class MapParser {
 		totalLines = 0;
 	}
 
-	
+
+	public Collection<RoadIntersection> getRoadIntersections() {
+		return roadIntersections;
+	}
+
+
+	public Collection<Road> getRoads() {
+		return roads;
+	}
+
+
 	public boolean parse() {
 		Scanner sc = null;
 
@@ -32,7 +42,7 @@ public class MapParser {
 				while (sc.hasNextLine()) {
 					totalLines++;
 					String line = sc.nextLine();
-					tokens = line.split(" ");
+					tokens = line.split("\t");
 					if (tokens[0].equals("i")) {
 						roadIntersections.add(new RoadIntersection(tokens[1], tokens[2], tokens[3]));
 					} 
