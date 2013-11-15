@@ -4,7 +4,7 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-public class Driver {
+public class MapDriver {
 	static MapView mapView;
 	static Hashtable<Road, IntersectionPair> roads;
 	static Hashtable<String, RoadIntersection> intersections;
@@ -37,6 +37,7 @@ public class Driver {
 				try {
 					map = get();
 					if (!map.isEmpty()) {
+						MapEngine engine = new MapEngine(map);
 						mapView.setStatus("Map parsed.");
 						roads = new Hashtable<Road, IntersectionPair>();
 						intersections = new Hashtable<String, RoadIntersection>();
@@ -48,7 +49,8 @@ public class Driver {
 										intersections.get(r.getIntersectionIdA()),
 										intersections.get(r.getIntersectionIdB())));
 						}
-						mapView.draw(map.getRoads(), roads);
+						mapView.draw(map.getRoads(), roads, map.getRoadIntersections());
+				
 						
 						
 					} else {

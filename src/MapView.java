@@ -1,18 +1,24 @@
 import javax.swing.*;
+import javax.swing.event.MouseInputListener;
 
 import java.awt.*;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Hashtable;
+import java.awt.MouseInfo;
 
+@SuppressWarnings("serial")
 public class MapView extends JFrame {
 	DrawPanel map;
 	JLabel status;
-	private static final long serialVersionUID = -7081517290750627650L;
+	
 
 	public MapView() {
 		initUI();
+		
 	}
 	
 	public void hideLoadingLabel() {
@@ -23,7 +29,8 @@ public class MapView extends JFrame {
 		
 	}
 	
-	public void draw(Collection<Road> roads, Hashtable<Road, IntersectionPair> roadTable) {
+	
+	public void draw(Collection<Road> roads, Hashtable<Road, IntersectionPair> roadTable, Collection<RoadIntersection> rIntersections) {
 		ArrayList<PointPair> pairs = new ArrayList<PointPair>(10000);
 		for (Road r : roads) {
 			IntersectionPair p = roadTable.get(r);
@@ -35,11 +42,12 @@ public class MapView extends JFrame {
 			PointPair pp = new PointPair(x1, y1, x2, y2);
 			pairs.add(pp);
 			
-			//for (int i = 0; i < 1000000; i++) {}
-			
 		}
 		map.setPoints(pairs);
+		
+		map.setIntersections(rIntersections);
 		map.repaint();
+		
 		
 		
 	}
@@ -50,14 +58,17 @@ public class MapView extends JFrame {
 		
 		map = new DrawPanel();
 		frame.getContentPane().add(map);
-		
+
 		status = new JLabel("Loading and parsing map file...");
 		map.add(status);
 		
-		frame.setSize(800,600);
+		frame.setResizable(false);
+		frame.setSize(650,600);
 		frame.setLocationRelativeTo(null);
 		frame.setVisible(true);
 	}
+
+	
 
 	
 	
