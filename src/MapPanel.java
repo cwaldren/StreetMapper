@@ -46,7 +46,7 @@ public class MapPanel extends JPanel {
 		MapController controller = new MapController(parser, view);
 	
 		this.add(view, BorderLayout.CENTER);
-		this.add(controller, BorderLayout.SOUTH);
+	
 	
 
 	}

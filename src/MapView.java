@@ -14,6 +14,9 @@ import java.util.Observer;
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import javax.swing.SpringLayout;
+import javax.swing.JProgressBar;
 
 
 @SuppressWarnings("serial")
@@ -22,17 +25,42 @@ public class MapView extends JPanel {
 	private Image bg;
 	private JLabel mouseInfo;
 	private double mouseX, mouseY;
-	
+	private JProgressBar progressBar;
+	private JLabel progressLabel;
 	
 	public MapView(MapParser parser) {
 		this.parser = parser;
 		parser.addObserver(new ParserObserver());
 		loadBackgroundImage();
 		this.addMouseMotionListener(new MouseHandler());
+		SpringLayout springLayout = new SpringLayout();
+		setLayout(springLayout);
 		
-		mouseInfo = new JLabel("Mouse: ");
+		mouseInfo = new JLabel("Mouse: (0.00, 0.00)");
+		springLayout.putConstraint(SpringLayout.WEST, mouseInfo, 10, SpringLayout.WEST, this);
+		springLayout.putConstraint(SpringLayout.SOUTH, mouseInfo, -10, SpringLayout.SOUTH, this);
+		mouseInfo.setForeground(Color.GREEN);
+	
 		
 		this.add(mouseInfo);
+		
+		try {
+			progressBar = new JProgressBar(0, parser.count());
+		} catch (IOException e) {
+			//failed to parse map
+			e.printStackTrace();
+		}
+		springLayout.putConstraint(SpringLayout.SOUTH, progressBar, -10, SpringLayout.SOUTH, this);
+		springLayout.putConstraint(SpringLayout.EAST, progressBar, -10, SpringLayout.EAST, this);
+		add(progressBar);
+		
+		progressLabel = new JLabel("Loading");
+		progressLabel.setForeground(Color.GREEN);
+		springLayout.putConstraint(SpringLayout.SOUTH, progressLabel, 0, SpringLayout.SOUTH, mouseInfo);
+		springLayout.putConstraint(SpringLayout.EAST, progressLabel, -6, SpringLayout.WEST, progressBar);
+		add(progressLabel);
+		
+		parser.parse();
 	}
 	
 	public void paintComponent(Graphics g) {
@@ -43,12 +71,15 @@ public class MapView extends JPanel {
 		t.scale(.8, 1);
 		g2.drawImage(bg, t, null);
 	}
+	
+	
 	private class ParserObserver implements Observer {
 
 		@Override
 		public void update(Observable o, Object arg) {
 			int i = (Integer) arg;
-			System.out.println(i);
+			progressBar.setValue(i);
+			
 		}
 		
 	}

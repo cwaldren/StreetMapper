@@ -15,14 +15,6 @@ public class Mapper implements Runnable {
 	
 	public static void main(String[] args) {
 
-//	    SwingUtilities.invokeLater(new Runnable() 
-//	    {
-//	        public void run() 
-//	        {
-//	        	new Mapper();
-//	        }
-//	    });
-		
 		
 		EventQueue.invokeLater(new Mapper());
 		    

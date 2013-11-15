@@ -1,7 +1,9 @@
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -58,6 +60,7 @@ public class MapParser extends Observable {
 				progressNumber++;
 				setChanged();
 				notifyObservers(progressNumber);
+				
 			}
 			sc.close();
 			return true;
@@ -68,5 +71,25 @@ public class MapParser extends Observable {
 		}
 
 	}
-
+	
+	public int count() throws IOException {
+	    InputStream is = new BufferedInputStream(new FileInputStream("src/"+fileName));
+	    try {
+	        byte[] c = new byte[1024];
+	        int count = 0;
+	        int readChars = 0;
+	        boolean empty = true;
+	        while ((readChars = is.read(c)) != -1) {
+	            empty = false;
+	            for (int i = 0; i < readChars; ++i) {
+	                if (c[i] == '\n') {
+	                    ++count;
+	                }
+	            }
+	        }
+	        return (count == 0 && !empty) ? 1 : count;
+	    } finally {
+	        is.close();
+	    }
+	}
 }

@@ -14,8 +14,7 @@ public class MapController extends JPanel {
 	public MapController(MapParser parser, MapView view) {
 		this.parser = parser;
 		this.view = view;
-		info = new JLabel("xxx intersections");
-		this.add(info);
+		
 	}
 
 }
