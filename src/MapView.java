@@ -1,75 +1,84 @@
-import javax.swing.*;
-import javax.swing.event.MouseInputListener;
-
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.geom.Line2D;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Hashtable;
-import java.awt.MouseInfo;
+import java.awt.geom.AffineTransform;
+import java.io.File;
+import java.io.IOException;
+import java.util.Observable;
+import java.util.Observer;
+
+import javax.imageio.ImageIO;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
 
 @SuppressWarnings("serial")
-public class MapView extends JFrame {
-	DrawPanel map;
-	JLabel status;
+public class MapView extends JPanel {
+	private MapParser parser;
+	private Image bg;
+	private JLabel mouseInfo;
+	private double mouseX, mouseY;
 	
+	
+	public MapView(MapParser parser) {
+		this.parser = parser;
+		parser.addObserver(new ParserObserver());
+		loadBackgroundImage();
+		this.addMouseMotionListener(new MouseHandler());
+		
+		mouseInfo = new JLabel("Mouse: ");
+		
+		this.add(mouseInfo);
+	}
+	
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		Graphics2D g2 = (Graphics2D) g;
+		AffineTransform t = new AffineTransform();
+		t.translate(0, 0);
+		t.scale(.8, 1);
+		g2.drawImage(bg, t, null);
+	}
+	private class ParserObserver implements Observer {
 
-	public MapView() {
-		initUI();
-		
-	}
-	
-	public void hideLoadingLabel() {
-		status.setVisible(false);
-	}
-	public void setStatus(String s) {
-		status.setText(s);
-		
-	}
-	
-	
-	public void draw(Collection<Road> roads, Hashtable<Road, IntersectionPair> roadTable, Collection<RoadIntersection> rIntersections) {
-		ArrayList<PointPair> pairs = new ArrayList<PointPair>(10000);
-		for (Road r : roads) {
-			IntersectionPair p = roadTable.get(r);
-			
-			double x1 = p.getA().x;
-			double y1 = p.getA().y;
-			double x2 = p.getB().x;
-			double y2 = p.getB().y;
-			PointPair pp = new PointPair(x1, y1, x2, y2);
-			pairs.add(pp);
-			
+		@Override
+		public void update(Observable o, Object arg) {
+			int i = (Integer) arg;
+			System.out.println(i);
 		}
-		map.setPoints(pairs);
-		
-		map.setIntersections(rIntersections);
-		map.repaint();
-		
-		
 		
 	}
-	private void initUI() {
-		JFrame frame = new JFrame("Rochester Map");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		
-		map = new DrawPanel();
-		frame.getContentPane().add(map);
-
-		status = new JLabel("Loading and parsing map file...");
-		map.add(status);
-		
-		frame.setResizable(false);
-		frame.setSize(650,600);
-		frame.setLocationRelativeTo(null);
-		frame.setVisible(true);
+	
+	private void loadBackgroundImage() {
+		try {
+			bg = ImageIO.read(new File("src/roch.png"));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
-
 	
 
-	
-	
+	private class MouseHandler extends MouseAdapter {
+
+		@Override
+		public void mouseDragged(MouseEvent e) {
+			update(e);
+		}
+
+		@Override
+		public void mouseMoved(MouseEvent e) {
+			mouseX = e.getX();
+			mouseY = e.getY();
+			update(e);
+		}
+
+		private void update(MouseEvent e) {
+			mouseInfo.setText("Mouse: (" + mouseX + ", " + mouseY + ")");
+			mouseInfo.repaint();
+		}
+	}
 }

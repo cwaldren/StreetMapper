@@ -6,12 +6,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Observable;
 import java.util.Scanner;
 
-public class MapParser {
+import javax.swing.SwingUtilities;
+
+public class MapParser extends Observable {
 
 	private String fileName;
-
+	private int progressNumber;
+	
 	private Collection<RoadIntersection> roadIntersections;
 	private Collection<Road> roads;
 
@@ -19,6 +23,7 @@ public class MapParser {
 		fileName = file;
 		roadIntersections = new ArrayList<RoadIntersection>(19203);
 		roads = new ArrayList<Road>(19824);
+		progressNumber = 1;
 	}
 
 	public Collection<RoadIntersection> getRoadIntersections() {
@@ -29,17 +34,18 @@ public class MapParser {
 		return roads;
 	}
 
-	
+
 	public boolean parse() {
 		Scanner sc = null;
 
 		InputStream is;
 		try {
-			is = new FileInputStream(new File("src/"+fileName));
+			is = new FileInputStream(new File("src/" + fileName));
 			sc = new Scanner(is);
 			String[] tokens;
 
 			while (sc.hasNextLine()) {
+				
 				String line = sc.nextLine();
 				tokens = line.split("\t");
 				if (tokens[0].equals("i")) {
@@ -48,14 +54,17 @@ public class MapParser {
 				} else if (tokens[0].equals("r")) {
 					roads.add(new Road(tokens[1], tokens[2], tokens[3]));
 				}
-
+				
+				progressNumber++;
+				setChanged();
+				notifyObservers(progressNumber);
 			}
 			sc.close();
 			return true;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			return false;
-		
+
 		}
 
 	}
