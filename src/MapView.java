@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.io.File;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.PriorityQueue;
 
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
@@ -32,18 +34,27 @@ import javax.swing.Timer;
 public class MapView extends JPanel implements ActionListener {
 	private ParserWorker parser;
 	private Image bg;
+
 	private JLabel mouseInfo;
-	private double mouseX, mouseY;
 	private JProgressBar progressBar;
 	private JLabel progressLabel;
+
 	private List<Line2D> roads;
+	private List<RoadIntersection> snapPoints;
+
 	private float alpha;
+	private double mouseX, mouseY;
+
+	private RoadIntersection pointA;
+	private RoadIntersection pointB;
+	private RoadIntersection closestPoint;
 	private Timer timer;
+	private MapGraph mapGraph;
 
 	public MapView(ParserWorker parser) throws IOException {
 		this.parser = parser;
 		addMouseMotionListener(new MouseHandler());
-
+		addMouseListener(new MouseHandler());
 		loadBackgroundImage();
 		setupComponents();
 		timer = new Timer(20, this);
@@ -63,6 +74,7 @@ public class MapView extends JPanel implements ActionListener {
 		springLayout.putConstraint(SpringLayout.SOUTH, mouseInfo, -10,
 				SpringLayout.SOUTH, this);
 		this.add(mouseInfo);
+		mouseInfo.setVisible(false);
 
 		/* Progress Bar */
 		progressBar = new JProgressBar(0, 100);
@@ -82,32 +94,62 @@ public class MapView extends JPanel implements ActionListener {
 		add(progressLabel);
 	}
 
-	public void paintComponent(Graphics g) {
-		super.paintComponent(g);
-		Graphics2D g2 = (Graphics2D) g;
+	private RoadIntersection getClosestPoint() {
+		RoadIntersection closestPoint = null;
+		double closestDistance = Integer.MAX_VALUE;
+		for (RoadIntersection s : snapPoints) {
+			double distance = Math.sqrt(Math.pow(mouseX - s.x, 2)
+					+ Math.pow(mouseY - s.y, 2));
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestPoint = s;
+			}
+		}
+		return closestPoint;
+	}
+
+	private void paintBackground(Graphics2D g2) {
 		AffineTransform t = new AffineTransform();
 		t.translate(0, 0);
 		t.scale(.8, 1);
 		g2.drawImage(bg, t, null);
+	}
+
+	public void paintComponent(Graphics g) {
+		super.paintComponent(g);
+		Graphics2D g2 = (Graphics2D) g;
+		paintBackground(g2);
+		
 		g2.setColor(Color.WHITE);
+		//Antialiasing
+		g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+				RenderingHints.VALUE_ANTIALIAS_ON);
+		//Setup fade in
 		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
 				alpha));
+
+		//If there's roads, draw them
 		if (roads != null) {
-
 			for (Line2D r : roads) {
-
 				g2.draw(r);
-
 			}
+			closestPoint = getClosestPoint();
 		}
-		g2.setColor(Color.RED);
-		// if (pointMap != null) {
-		// RoadIntersection closest = pointMap.get(new Point2D.Double(mouseX,
-		// mouseY));
-		// if (closest != null) {
-		// g2.fillOval((int)closest.getX()-5, (int)closest.getY()-5, 10, 10);
-		// }
-		// }
+
+		final int offset = 4;
+		if (closestPoint != null) {
+			g2.setColor(Color.RED);
+			Ellipse2D.Double circle = new Ellipse2D.Double((int) closestPoint.x
+					- offset, (int) closestPoint.y - offset, 10, 10);
+			g2.fill(circle);
+		}
+
+		if (pointA != null) {
+			g2.setColor(Color.BLUE);
+			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointA.x
+					- offset, (int) pointA.y - offset, 10, 10);
+			g2.fill(circle);
+		}
 
 	}
 
@@ -117,12 +159,8 @@ public class MapView extends JPanel implements ActionListener {
 
 	public void updateProgressBar(int i) {
 		if (i == 100) {
-			progressBar.setVisible(false);
-			progressLabel.setVisible(false);
-			this.repaint();
 			timer.start();
 			alpha = .01f;
-
 		}
 		progressBar.setValue(i);
 
@@ -138,10 +176,18 @@ public class MapView extends JPanel implements ActionListener {
 
 	public void setRoads(List<Line2D> roads) {
 		this.roads = roads;
+		progressBar.setVisible(false);
+		progressLabel.setVisible(false);
+		mouseInfo.setVisible(true);
 
 	}
 
 	private class MouseHandler extends MouseAdapter {
+
+		@Override
+		public void mouseClicked(MouseEvent e) {
+			pointA = closestPoint;
+		}
 
 		@Override
 		public void mouseDragged(MouseEvent e) {
@@ -171,6 +217,31 @@ public class MapView extends JPanel implements ActionListener {
 			timer.stop();
 		}
 		repaint();
+	}
+
+	public void setPoints(List<RoadIntersection> snapPoints) {
+		this.snapPoints = snapPoints;
+
+	}
+	
+	private void dijkstra(MapGraph g, RoadIntersection s) {
+		List<Vertex> vertices = g.getVertices();
+		Vertex source = new Vertex(s.getX(), s.getY());
+		source = vertices.get(vertices.indexOf(source));
+		
+		source.distance = 0;
+		
+		PriorityQueue<Vertex> q = new PriorityQueue<Vertex>();
+		q.add(source);
+		
+		while (!q.isEmpty()) {
+			Vertex u = q.poll();
+		}
+	}
+
+	public void setGraph(MapGraph graph) {
+		this.mapGraph = graph;
+		
 	}
 
 }

@@ -82,7 +82,7 @@ public class ParserWorker extends SwingWorker<Map, Integer> {
 
 				progressNumber++;
 				setProgress((int) (((double) progressNumber / count) * 100));
-				System.out.println();
+				
 
 			}
 

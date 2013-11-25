@@ -30,6 +30,7 @@ public class MapController extends JPanel implements PropertyChangeListener {
 	public void control() {
 		// Parse the file
 		parser.execute();
+		
 
 	}
 
@@ -47,6 +48,8 @@ public class MapController extends JPanel implements PropertyChangeListener {
 		}
 
 		List<Line2D> viewRoads = new ArrayList<Line2D>();
+		List<RoadIntersection> snapPoints = new ArrayList<RoadIntersection>();
+		
 		for (Road r : map.getRoads()) {
 			IntersectionPair ip = roads.get(r.getId());
 			double x1 = ip.getA().x;
@@ -57,11 +60,20 @@ public class MapController extends JPanel implements PropertyChangeListener {
 			Line2D road = new Line2D.Double(x1, y1, x2, y2);
 			viewRoads.add(road);
 			
+			snapPoints.add(ip.getA());
+			snapPoints.add(ip.getB());
+			
 		}
+		view.setPoints(snapPoints);
 		view.setRoads(viewRoads);
 		
+		
+		MapGraph graph = new MapGraph(roads, intersections, map.getRoads());
+		
+		view.setGraph(graph);
 	}
 
+	
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {
