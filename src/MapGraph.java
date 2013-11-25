@@ -36,6 +36,7 @@ public class MapGraph  {
 			
 			a.addNeighbor(b);
 			b.addNeighbor(a);
+			
 		}	
 		
 	}

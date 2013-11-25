@@ -2,6 +2,7 @@ import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Observable;
@@ -46,7 +48,7 @@ public class MapView extends JPanel implements ActionListener {
 	private List<Line2D> roads;
 	private List<RoadIntersection> snapPoints;
 	private List<Line2D> shortestPath;
-	
+	private List<RoadIntersection> adjPoints;
 	private float alpha;
 	private double mouseX, mouseY;
 
@@ -56,7 +58,13 @@ public class MapView extends JPanel implements ActionListener {
 	private Timer timer;
 	private Timer dTimer;
 	private MapGraph mapGraph;
-
+	private boolean ready;
+	private enum DrawModes {
+		RENDER_ADJ, RENDER_AS_POINTS, RENDER_AS_LINES, RENDER_FANCY, RENDER_SHORTEST_PATH
+	}
+	
+	private EnumSet<DrawModes> flags;
+	
 	public MapView(ParserWorker parser) throws IOException {
 		this.parser = parser;
 		addMouseMotionListener(new MouseHandler());
@@ -64,6 +72,7 @@ public class MapView extends JPanel implements ActionListener {
 		loadBackgroundImage();
 		setupComponents();
 		timer = new Timer(20, this);
+		ready = false;
 		//dTimer = new Timer(100, dijkstraCalculator);
 		alpha = 1f;
 
@@ -135,55 +144,107 @@ public class MapView extends JPanel implements ActionListener {
 	}
 
 	public void paintComponent(Graphics g) {
+		flags = EnumSet.of(
+				DrawModes.RENDER_FANCY, 
+				DrawModes.RENDER_AS_LINES,
+				DrawModes.RENDER_SHORTEST_PATH
+		);
+		
 		super.paintComponent(g);
+	
+		//Setup the context and draw the bg picture
 		Graphics2D g2 = (Graphics2D) g;
 		paintBackground(g2);
 		
+		//Font in case we want to display some stuff
+		Font font = new Font("Arial", Font.PLAIN, 12);
+		g2.setFont(font);
 		g2.setColor(Color.WHITE);
+	
 		//Antialiasing
-		g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-				RenderingHints.VALUE_ANTIALIAS_ON);
-		//Setup fade in
-		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-				alpha));
-
-		//If there's roads, draw them
-		if (roads != null) {
-			for (Line2D r : roads) {
-				g2.draw(r);
+		if (flags.contains(DrawModes.RENDER_FANCY))
+			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		
+		//Setup map fade in
+		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+		
+		//Offset so stuff lines up properly
+		final int offset = 4;
+		
+		if (flags.contains(DrawModes.RENDER_AS_LINES)) {
+			if (roads != null) {
+				g2.setStroke(new BasicStroke(1));
+				for (Line2D r : roads) {
+					g2.draw(r);
+				}
 			}
-			closestPoint = getClosestPoint();
+		}
+			
+		if (flags.contains(DrawModes.RENDER_AS_POINTS)) {
+			if (snapPoints != null) {
+				for (RoadIntersection r : snapPoints) {
+					g2.setColor(Color.RED);
+					Ellipse2D.Double circle = new Ellipse2D.Double((int) r.x
+							, (int) r.y , 1, 1);
+					g2.fill(circle);
+				}
+			}
 		}
 		
-		if (shortestPath != null) {
-			g2.setColor(Color.YELLOW);
-			 g2.setStroke(new BasicStroke(3));
-			for (Line2D r : shortestPath) {
-				g2.draw(r);
+		if (flags.contains(DrawModes.RENDER_SHORTEST_PATH)) {
+			if (shortestPath != null) {
+				g2.setColor(Color.YELLOW);
+				g2.setStroke(new BasicStroke(3));
+				for (Line2D r : shortestPath) {
+					g2.draw(r);
+				}
 			}
 		}
 
-		final int offset = 4;
+		
+		if (flags.contains(DrawModes.RENDER_ADJ)) {
+			if (adjPoints != null) {
+				StringBuilder sb = new StringBuilder();
+				for (RoadIntersection r : adjPoints) {
+					g2.setColor(Color.GREEN);
+					sb.append(r.getId() + ", ");
+					Ellipse2D.Double circle = new Ellipse2D.Double((int) r.x
+							- offset, (int)r.y - offset, 3, 3);
+					g2.fill(circle);
+				}
+				mouseInfo.setText(sb.toString());
+			}
+		}
+
+		
 		if (closestPoint != null) {
 			g2.setColor(Color.RED);
 			Ellipse2D.Double circle = new Ellipse2D.Double((int) closestPoint.x
 					- offset, (int) closestPoint.y - offset, 10, 10);
 			g2.fill(circle);
 		}
-
+		
 		if (pointA != null) {
-			g2.setColor(Color.BLUE);
-			g2.drawString("A", (int)pointA.x, (int)pointA.y);
+			int size = flags.contains(DrawModes.RENDER_ADJ) ? 5 : 10;
+			g2.setColor(Color.YELLOW);
+			g2.drawString("A", (int)pointA.x+10, (int)pointA.y);
+			
 			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointA.x
-					- offset, (int) pointA.y - offset, 10, 10);
+					- offset, (int) pointA.y - offset, size, size);
 			g2.fill(circle);
 		}
+		
 		if (pointB != null) {
-			g2.setColor(Color.GREEN);
+			int size = flags.contains(DrawModes.RENDER_ADJ) ? 5 : 10;
+			g2.setColor(Color.YELLOW);
+			g2.drawString("B", (int)pointB.x+10, (int)pointB.y);
 			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointB.x
-					- offset, (int) pointB.y - offset, 10, 10);
+					- offset, (int) pointB.y - offset, size, size);
 			g2.fill(circle);
 		}
+		
+		
+		//End drawing
 
 	}
 
@@ -232,6 +293,8 @@ public class MapView extends JPanel implements ActionListener {
 				pointB = null;
 				pointA = closestPoint;
 			}
+			
+		   adjPoints = closestPoint.getNeighbors();
 			//dTimer.start();
 			
 		}
@@ -246,7 +309,8 @@ public class MapView extends JPanel implements ActionListener {
 		public void mouseMoved(MouseEvent e) {
 			mouseX = e.getX();
 			mouseY = e.getY();
-			
+			if (snapPoints != null)
+				closestPoint = getClosestPoint();
 			update(e);
 		}
 
@@ -327,7 +391,7 @@ public class MapView extends JPanel implements ActionListener {
 		protected void done() {
 			try {
 				double distance = get();
-				mouseInfo.setText(""+distance);
+				mouseInfo.setText("A to B distance: "+distance);
 				
 			} catch (InterruptedException | ExecutionException e) {
 				// TODO Auto-generated catch block
