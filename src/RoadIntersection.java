@@ -21,7 +21,8 @@ public class RoadIntersection {
 		x = Double.parseDouble(isX);
 		y = Double.parseDouble(isY);
 	}
-
+	
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -55,6 +56,23 @@ public class RoadIntersection {
 			return false;
 		return true;
 	}
+
+//	@Override
+//	public int compareTo(Object arg0) {
+//		RoadIntersection other = (RoadIntersection) arg0;
+//		if (other.getX() > this.getX())
+//			return 1;
+//		if (other.getX() < this.getX())
+//			return -1;
+//		if (other.getX() == this.getX()) {
+//			if (other.getY() > this.getY())
+//				return 1;
+//			if (other.getY() < this.getY())
+//				return -1;
+//			return 0;
+//		}
+//		return 0;
+//	}
 	
 	
 }

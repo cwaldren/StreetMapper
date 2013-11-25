@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 @SuppressWarnings("serial")
 public class MapPanel extends JPanel {
@@ -33,7 +34,7 @@ public class MapPanel extends JPanel {
 	List<PointPair> pairs;
 	List<RoadIntersection> intersections;
 	
-	public MapPanel() {
+	public MapPanel() throws IOException, InterruptedException, ExecutionException {
 		super(new BorderLayout());
 
 //		
@@ -41,12 +42,12 @@ public class MapPanel extends JPanel {
 //		intersections = new ArrayList<RoadIntersection>(10000);
 		//loadBackgroundImage();
 //		addMouseMotionListener(new MouseHandler());
-		MapParser parser = new MapParser("monroe-county.tab");
+		ParserWorker parser = new ParserWorker("monroe-county.tab");
 		MapView view = new MapView(parser);
 		MapController controller = new MapController(parser, view);
-	
+		controller.control();
 		this.add(view, BorderLayout.CENTER);
-	
+		
 	
 
 	}
