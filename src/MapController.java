@@ -5,8 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
@@ -28,10 +26,7 @@ public class MapController extends JPanel implements PropertyChangeListener {
 	}
 
 	public void control() {
-		// Parse the file
 		parser.execute();
-		
-
 	}
 
 	private void processForView() throws InterruptedException, ExecutionException {
@@ -83,7 +78,6 @@ public class MapController extends JPanel implements PropertyChangeListener {
 					processForView();
 					
 				} catch (InterruptedException | ExecutionException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 		}

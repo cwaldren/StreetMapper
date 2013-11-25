@@ -1,6 +1,5 @@
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -14,23 +13,17 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 import java.util.PriorityQueue;
 import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 import javax.swing.SpringLayout;
 import javax.swing.JProgressBar;
 import javax.swing.SwingWorker;
@@ -38,10 +31,9 @@ import javax.swing.Timer;
 
 @SuppressWarnings("serial")
 public class MapView extends JPanel implements ActionListener {
-	private ParserWorker parser;
 	private Image bg;
 
-	private JLabel mouseInfo;
+	private JLabel info;
 	private JProgressBar progressBar;
 	private JLabel progressLabel;
 
@@ -56,34 +48,22 @@ public class MapView extends JPanel implements ActionListener {
 	private RoadIntersection pointB;
 	private RoadIntersection closestPoint;
 	private Timer timer;
-	private Timer dTimer;
 	private MapGraph mapGraph;
-	private boolean ready;
 	private enum DrawModes {
 		RENDER_ADJ, RENDER_AS_POINTS, RENDER_AS_LINES, RENDER_FANCY, RENDER_SHORTEST_PATH
 	}
 	
 	private EnumSet<DrawModes> flags;
 	
-	public MapView(ParserWorker parser) throws IOException {
-		this.parser = parser;
+	public MapView() throws IOException {
 		addMouseMotionListener(new MouseHandler());
 		addMouseListener(new MouseHandler());
 		loadBackgroundImage();
 		setupComponents();
 		timer = new Timer(20, this);
-		ready = false;
-		//dTimer = new Timer(100, dijkstraCalculator);
 		alpha = 1f;
 
 	}
-//	ActionListener dijkstraCalculator = new ActionListener() {
-//	      public void actionPerformed(ActionEvent evt) {
-//	    	  if (pointA != null) {
-//	    		  new DijkstraWorker(closestPoint).execute();
-//	    	  }
-//	      }
-//	  };
 
 
 	private void setupComponents() throws IOException {
@@ -91,14 +71,15 @@ public class MapView extends JPanel implements ActionListener {
 		setLayout(springLayout);
 
 		/* Mouse Info */
-		mouseInfo = new JLabel("Mouse: (0.00, 0.00)");
-		mouseInfo.setForeground(Color.GREEN);
-		springLayout.putConstraint(SpringLayout.WEST, mouseInfo, 10,
+		info = new JLabel("Info: ");
+		info.setBackground(Color.WHITE);
+		info.setForeground(Color.WHITE);
+		springLayout.putConstraint(SpringLayout.WEST, info, 5,
 				SpringLayout.WEST, this);
-		springLayout.putConstraint(SpringLayout.SOUTH, mouseInfo, -10,
+		springLayout.putConstraint(SpringLayout.SOUTH, info, -2,
 				SpringLayout.SOUTH, this);
-		this.add(mouseInfo);
-		mouseInfo.setVisible(false);
+		this.add(info);
+		info.setVisible(false);
 
 		/* Progress Bar */
 		progressBar = new JProgressBar(0, 100);
@@ -112,29 +93,15 @@ public class MapView extends JPanel implements ActionListener {
 		progressLabel = new JLabel("Parsing..");
 		progressLabel.setForeground(Color.GREEN);
 		springLayout.putConstraint(SpringLayout.SOUTH, progressLabel, 0,
-				SpringLayout.SOUTH, mouseInfo);
+				SpringLayout.SOUTH, info);
 		springLayout.putConstraint(SpringLayout.EAST, progressLabel, -6,
 				SpringLayout.WEST, progressBar);
 		add(progressLabel);
 	}
 
-	private double distanceFormula(double x1, double y1, double x2, double y2) {
-		return Math.sqrt(Math.pow(x1 - x2, 2)
-				+ Math.pow(y1 - y2, 2));
-	}
 	
-	private RoadIntersection getClosestPoint() {
-		RoadIntersection closestPoint = null;
-		double closestDistance = Integer.MAX_VALUE;
-		for (RoadIntersection s : snapPoints) {
-			double distance = distanceFormula(mouseX, mouseY, s.x, s.y);
-			if (distance < closestDistance) {
-				closestDistance = distance;
-				closestPoint = s;
-			}
-		}
-		return closestPoint;
-	}
+	
+
 
 	private void paintBackground(Graphics2D g2) {
 		AffineTransform t = new AffineTransform();
@@ -212,7 +179,7 @@ public class MapView extends JPanel implements ActionListener {
 							- offset, (int)r.y - offset, 3, 3);
 					g2.fill(circle);
 				}
-				mouseInfo.setText(sb.toString());
+				info.setText(sb.toString());
 			}
 		}
 
@@ -248,18 +215,7 @@ public class MapView extends JPanel implements ActionListener {
 
 	}
 
-	public void setProgress(String s) {
-		progressLabel.setText(s);
-	}
-
-	public void updateProgressBar(int i) {
-		if (i == 100) {
-			timer.start();
-			alpha = .01f;
-		}
-		progressBar.setValue(i);
-
-	}
+	
 
 	private void loadBackgroundImage() {
 		try {
@@ -269,13 +225,7 @@ public class MapView extends JPanel implements ActionListener {
 		}
 	}
 
-	public void setRoads(List<Line2D> roads) {
-		this.roads = roads;
-		progressBar.setVisible(false);
-		progressLabel.setVisible(false);
-		mouseInfo.setVisible(true);
-
-	}
+	
 
 	private class MouseHandler extends MouseAdapter {
 
@@ -295,7 +245,7 @@ public class MapView extends JPanel implements ActionListener {
 			}
 			
 		   adjPoints = closestPoint.getNeighbors();
-			//dTimer.start();
+		
 			
 		}
 
@@ -315,34 +265,19 @@ public class MapView extends JPanel implements ActionListener {
 		}
 
 		private void update(MouseEvent e) {
-			//mouseInfo.setText("Mouse: (" + mouseX + ", " + mouseY + ")");
-			mouseInfo.repaint();
+			if (snapPoints != null)
+				if (pointB == null)
+					info.setText("Info: hovering over intersection ID "+closestPoint.getId());
+			info.repaint();
 			MapView.this.repaint();
 
 		}
 	}
 
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		alpha += 0.03f;
-		if (alpha >= 1) {
-			alpha = 1;
-			timer.stop();
-		}
-		repaint();
-	}
-
-	public void setPoints(List<RoadIntersection> snapPoints) {
-		this.snapPoints = snapPoints;
-
-	}
 	
 	
 	private class DijkstraWorker extends SwingWorker<Double, Void> {
 		
-		public DijkstraWorker() {
-			
-		}
 		@Override
 		protected Double doInBackground() throws Exception {
 			
@@ -354,7 +289,6 @@ public class MapView extends JPanel implements ActionListener {
 				r.visited = false;
 				r.previous = null;
 			}
-			//source = vertices.get(vertices.indexOf(source));
 			
 			source.distance = 0;
 			
@@ -391,20 +325,68 @@ public class MapView extends JPanel implements ActionListener {
 		protected void done() {
 			try {
 				double distance = get();
-				mouseInfo.setText("A to B distance: "+distance);
+				String dist = (distance == Integer.MAX_VALUE ? "unreachable" : Double.toString(distance));
+				info.setText("A (" + pointA.getId() + ") to B (" + pointB.getId() + ") distance: " + dist);
 				
 			} catch (InterruptedException | ExecutionException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 		
 	}
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		alpha += 0.03f;
+		if (alpha >= 1) {
+			alpha = 1;
+			timer.stop();
+		}
+		repaint();
+	}
 
+	public void setPoints(List<RoadIntersection> snapPoints) {
+		this.snapPoints = snapPoints;
+	}
+	
+	public void setRoads(List<Line2D> roads) {
+		this.roads = roads;
+		progressBar.setVisible(false);
+		progressLabel.setVisible(false);
+		info.setVisible(true);
+	}
+	
+	public void setProgress(String s) {
+		progressLabel.setText(s);
+	}
 
+	public void updateProgressBar(int i) {
+		if (i == 100) {
+			timer.start();
+			alpha = .01f;
+		}
+		progressBar.setValue(i);
+	}
+	
+	private RoadIntersection getClosestPoint() {
+		RoadIntersection closestPoint = null;
+		double closestDistance = Integer.MAX_VALUE;
+		for (RoadIntersection s : snapPoints) {
+			double distance = distanceFormula(mouseX, mouseY, s.x, s.y);
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestPoint = s;
+			}
+		}
+		return closestPoint;
+	}
+	
+	private double distanceFormula(double x1, double y1, double x2, double y2) {
+		return Math.sqrt(Math.pow(x1 - x2, 2)
+				+ Math.pow(y1 - y2, 2));
+	}
+	
 	public void setGraph(MapGraph graph) {
 		this.mapGraph = graph;
-		
 	}
 
 }

@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class RoadIntersection implements Comparable {
+public class RoadIntersection implements Comparable<RoadIntersection> {
 	private List<RoadIntersection> neighbors;
 	public double distance;
 	public boolean visited;
@@ -79,30 +79,13 @@ public class RoadIntersection implements Comparable {
 	}
 
 	@Override
-	public int compareTo(Object arg0) {
-		RoadIntersection other = (RoadIntersection) arg0;
+	public int compareTo(RoadIntersection arg0) {
+		RoadIntersection other = arg0;
 		if (other.distance > distance)
 			return 1;
 		if (other.distance < distance) 
 			return -1;
 		return 0;
 	}
-//	@Override
-//	public int compareTo(Object arg0) {
-//		RoadIntersection other = (RoadIntersection) arg0;
-//		if (other.getX() > this.getX())
-//			return 1;
-//		if (other.getX() < this.getX())
-//			return -1;
-//		if (other.getX() == this.getX()) {
-//			if (other.getY() > this.getY())
-//				return 1;
-//			if (other.getY() < this.getY())
-//				return -1;
-//			return 0;
-//		}
-//		return 0;
-//	}
-	
-	
+
 }

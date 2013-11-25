@@ -1,18 +1,8 @@
 import javax.swing.*;
-import javax.swing.event.MouseInputListener;
-
 import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.awt.geom.Line2D;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Hashtable;
 import java.util.concurrent.ExecutionException;
-import java.awt.MouseInfo;
 import java.io.IOException;
 
-@SuppressWarnings("serial")
 public class Mapper implements Runnable {
 
 	public static void main(String[] args) {
