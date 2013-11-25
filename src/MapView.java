@@ -1,4 +1,5 @@
 import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Graphics;
@@ -15,11 +16,14 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.PriorityQueue;
+import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
@@ -41,7 +45,8 @@ public class MapView extends JPanel implements ActionListener {
 
 	private List<Line2D> roads;
 	private List<RoadIntersection> snapPoints;
-
+	private List<Line2D> shortestPath;
+	
 	private float alpha;
 	private double mouseX, mouseY;
 
@@ -49,6 +54,7 @@ public class MapView extends JPanel implements ActionListener {
 	private RoadIntersection pointB;
 	private RoadIntersection closestPoint;
 	private Timer timer;
+	private Timer dTimer;
 	private MapGraph mapGraph;
 
 	public MapView(ParserWorker parser) throws IOException {
@@ -58,9 +64,18 @@ public class MapView extends JPanel implements ActionListener {
 		loadBackgroundImage();
 		setupComponents();
 		timer = new Timer(20, this);
+		//dTimer = new Timer(100, dijkstraCalculator);
 		alpha = 1f;
 
 	}
+//	ActionListener dijkstraCalculator = new ActionListener() {
+//	      public void actionPerformed(ActionEvent evt) {
+//	    	  if (pointA != null) {
+//	    		  new DijkstraWorker(closestPoint).execute();
+//	    	  }
+//	      }
+//	  };
+
 
 	private void setupComponents() throws IOException {
 		SpringLayout springLayout = new SpringLayout();
@@ -94,12 +109,16 @@ public class MapView extends JPanel implements ActionListener {
 		add(progressLabel);
 	}
 
+	private double distanceFormula(double x1, double y1, double x2, double y2) {
+		return Math.sqrt(Math.pow(x1 - x2, 2)
+				+ Math.pow(y1 - y2, 2));
+	}
+	
 	private RoadIntersection getClosestPoint() {
 		RoadIntersection closestPoint = null;
 		double closestDistance = Integer.MAX_VALUE;
 		for (RoadIntersection s : snapPoints) {
-			double distance = Math.sqrt(Math.pow(mouseX - s.x, 2)
-					+ Math.pow(mouseY - s.y, 2));
+			double distance = distanceFormula(mouseX, mouseY, s.x, s.y);
 			if (distance < closestDistance) {
 				closestDistance = distance;
 				closestPoint = s;
@@ -135,6 +154,14 @@ public class MapView extends JPanel implements ActionListener {
 			}
 			closestPoint = getClosestPoint();
 		}
+		
+		if (shortestPath != null) {
+			g2.setColor(Color.YELLOW);
+			 g2.setStroke(new BasicStroke(3));
+			for (Line2D r : shortestPath) {
+				g2.draw(r);
+			}
+		}
 
 		final int offset = 4;
 		if (closestPoint != null) {
@@ -146,8 +173,15 @@ public class MapView extends JPanel implements ActionListener {
 
 		if (pointA != null) {
 			g2.setColor(Color.BLUE);
+			g2.drawString("A", (int)pointA.x, (int)pointA.y);
 			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointA.x
 					- offset, (int) pointA.y - offset, 10, 10);
+			g2.fill(circle);
+		}
+		if (pointB != null) {
+			g2.setColor(Color.GREEN);
+			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointB.x
+					- offset, (int) pointB.y - offset, 10, 10);
 			g2.fill(circle);
 		}
 
@@ -186,23 +220,38 @@ public class MapView extends JPanel implements ActionListener {
 
 		@Override
 		public void mouseClicked(MouseEvent e) {
-			pointA = closestPoint;
+			if (pointA == null) {
+				pointA = closestPoint;
+			} else
+			if (pointA != null && pointB == null) {
+				pointB = closestPoint;
+				new DijkstraWorker().execute();
+			} else 
+			if (pointA != null && pointB != null) {
+				shortestPath = null;
+				pointB = null;
+				pointA = closestPoint;
+			}
+			//dTimer.start();
+			
 		}
 
 		@Override
 		public void mouseDragged(MouseEvent e) {
 			update(e);
+			
 		}
 
 		@Override
 		public void mouseMoved(MouseEvent e) {
 			mouseX = e.getX();
 			mouseY = e.getY();
+			
 			update(e);
 		}
 
 		private void update(MouseEvent e) {
-			mouseInfo.setText("Mouse: (" + mouseX + ", " + mouseY + ")");
+			//mouseInfo.setText("Mouse: (" + mouseX + ", " + mouseY + ")");
 			mouseInfo.repaint();
 			MapView.this.repaint();
 
@@ -224,20 +273,70 @@ public class MapView extends JPanel implements ActionListener {
 
 	}
 	
-	private void dijkstra(MapGraph g, RoadIntersection s) {
-		List<Vertex> vertices = g.getVertices();
-		Vertex source = new Vertex(s.getX(), s.getY());
-		source = vertices.get(vertices.indexOf(source));
+	
+	private class DijkstraWorker extends SwingWorker<Double, Void> {
 		
-		source.distance = 0;
-		
-		PriorityQueue<Vertex> q = new PriorityQueue<Vertex>();
-		q.add(source);
-		
-		while (!q.isEmpty()) {
-			Vertex u = q.poll();
+		public DijkstraWorker() {
+			
 		}
+		@Override
+		protected Double doInBackground() throws Exception {
+			
+			List<RoadIntersection> vertices = mapGraph.getVertices();
+			RoadIntersection source = vertices.get(vertices.indexOf(pointA));
+			RoadIntersection dest = vertices.get(vertices.indexOf(pointB));
+			for (RoadIntersection r : vertices) {
+				r.distance = Integer.MAX_VALUE;
+				r.visited = false;
+				r.previous = null;
+			}
+			//source = vertices.get(vertices.indexOf(source));
+			
+			source.distance = 0;
+			
+			PriorityQueue<RoadIntersection> q = new PriorityQueue<RoadIntersection>();
+			q.add(source);
+			
+			while (!q.isEmpty()) {
+				RoadIntersection u = q.poll();
+				u.visited = true;
+				
+				for (RoadIntersection v : u.getNeighbors()) {
+					double alt = u.distance + distanceFormula(u.x, u.y, v.x, v.y);
+					if (alt < v.distance && !v.visited) {
+						v.distance = alt;
+						v.previous = u;
+						q.add(v);
+					}
+				}
+			}
+			shortestPath = new ArrayList<Line2D>();
+			List<RoadIntersection> path = new ArrayList<RoadIntersection>();
+			for (RoadIntersection r = dest; r != null; r = r.previous)
+	            path.add(r);
+			for (int i = 0; i < path.size()-1; i++) {
+				RoadIntersection a = path.get(i);
+				RoadIntersection b = path.get(i+1);
+				Line2D line = new Line2D.Double(a.getX(), a.getY(), b.getX(), b.getY());
+				shortestPath.add(line);
+			}
+
+			return dest.distance;
+		}
+		
+		protected void done() {
+			try {
+				double distance = get();
+				mouseInfo.setText(""+distance);
+				
+			} catch (InterruptedException | ExecutionException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 	}
+
 
 	public void setGraph(MapGraph graph) {
 		this.mapGraph = graph;

@@ -7,20 +7,18 @@ import java.util.List;
 
 
 public class MapGraph  {
-	private List<Vertex> vertices;
-	private List<Road> roadsList;
-	HashMap<String, IntersectionPair> roads;
-	HashMap<String, RoadIntersection> intersections;
+	private Map map;
+	private List<RoadIntersection> vertices;
+	private List<Road> edges;
+	private HashMap<String, IntersectionPair> roads;
+	private HashMap<String, RoadIntersection> intersections;
 	
-	public MapGraph(HashMap<String, IntersectionPair> roadsHashMap,
-			HashMap<String, RoadIntersection> intersectionsHashMap, Collection<Road> roads) {
-		this.roads = roadsHashMap;
-		this.roadsList = new ArrayList<Road>(roads);
-		intersections = intersectionsHashMap;
-		vertices = new ArrayList<Vertex>();
-	
-		
-		//setVertices(roads);
+	public MapGraph(Map map, HashMap<String, IntersectionPair> roads, HashMap<String, RoadIntersection> intersections) {
+		this.map = map;
+		this.vertices = map.getRoadIntersections();
+		this.edges = new ArrayList(map.getRoads());
+		this.roads = roads;
+		this.intersections = intersections;
 		calculateAdjacencies();
 	}
 	
@@ -29,36 +27,24 @@ public class MapGraph  {
 	
 
 	private void calculateAdjacencies() {
-		//HashSet<Vertex> hs = new HashSet<Vertex>();
-		//Collections.sort(vertices);
-		for (IntersectionPair r : roads.values()) {
-			RoadIntersection a = r.getA();
-			RoadIntersection b = r.getB();
-			Vertex av = new Vertex(a.getX(), a.getY());
-			Vertex bv = new Vertex(b.getX(), b.getY());
+		
+		for (Road r : edges) {
+			String aId = r.getIntersectionIdA();
+			String bId = r.getIntersectionIdB();
+			RoadIntersection a = intersections.get(aId);
+			RoadIntersection b = intersections.get(bId);
 			
-			if (!vertices.contains(av)) {
-				vertices.add(av);
-			} else {
-				vertices.get(vertices.indexOf(av)).neighbors.add(bv);
-			}
-			if (!vertices.contains(bv)) {
-				vertices.add(bv);
-			} else {
-				vertices.get(vertices.indexOf(bv)).neighbors.add(av);
-			}
-		}
+			a.addNeighbor(b);
+			b.addNeighbor(a);
+		}	
+		
 	}
 
 
 
-	private void setVertices(List<RoadIntersection> intersections) {
-		for (RoadIntersection r : intersections) {
-			vertices.add(new Vertex(r.getX(), r.getY()));
-		}
-	}
 	
-	public List<Vertex> getVertices() {
+	
+	public List<RoadIntersection> getVertices() {
 		return vertices;
 	}
 	

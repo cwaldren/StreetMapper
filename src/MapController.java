@@ -68,7 +68,7 @@ public class MapController extends JPanel implements PropertyChangeListener {
 		view.setRoads(viewRoads);
 		
 		
-		MapGraph graph = new MapGraph(roads, intersections, map.getRoads());
+		MapGraph graph = new MapGraph(map, roads, intersections);
 		
 		view.setGraph(graph);
 	}

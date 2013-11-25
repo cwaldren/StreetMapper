@@ -1,8 +1,20 @@
+import java.util.ArrayList;
+import java.util.List;
 
-public class RoadIntersection {
+
+public class RoadIntersection implements Comparable {
+	private List<RoadIntersection> neighbors;
+	public double distance;
+	public boolean visited;
+	public RoadIntersection previous;
+	
 	private String id;
 	double x;
 	double y;
+	
+	public void addNeighbor(RoadIntersection r) {
+		neighbors.add(r);
+	}
 	
 	public String getId() {
 		return id;
@@ -20,8 +32,17 @@ public class RoadIntersection {
 		id = isId;
 		x = Double.parseDouble(isX);
 		y = Double.parseDouble(isY);
+		neighbors = new ArrayList<RoadIntersection>();
 	}
 	
+	public RoadIntersection(String isId) {
+		id = isId;
+		neighbors = new ArrayList<RoadIntersection>();
+	}
+	
+	public List<RoadIntersection> getNeighbors() {
+		return neighbors;
+	}
 	
 	@Override
 	public int hashCode() {
@@ -57,6 +78,15 @@ public class RoadIntersection {
 		return true;
 	}
 
+	@Override
+	public int compareTo(Object arg0) {
+		RoadIntersection other = (RoadIntersection) arg0;
+		if (other.distance > distance)
+			return 1;
+		if (other.distance < distance) 
+			return -1;
+		return 0;
+	}
 //	@Override
 //	public int compareTo(Object arg0) {
 //		RoadIntersection other = (RoadIntersection) arg0;
