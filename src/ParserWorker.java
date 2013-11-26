@@ -23,7 +23,7 @@ public class ParserWorker extends SwingWorker<Map, Integer> {
 		fileName = file;
 		roadIntersections = new ArrayList<RoadIntersection>(19203);
 		roads = new ArrayList<Road>(19824);
-		progressNumber = 1;
+		progressNumber = 0;
 	}
 
 	public Collection<Road> getRoads() {
@@ -63,24 +63,36 @@ public class ParserWorker extends SwingWorker<Map, Integer> {
 			is = new FileInputStream(new File("src/" + fileName));
 			sc = new Scanner(is);
 			String[] tokens;
-
+			Scanner ls = new Scanner("");
 			while (sc.hasNextLine()) {
-
 				String line = sc.nextLine();
-				tokens = line.split("\t");
-				if (tokens[0].equals("i")) {
-					roadIntersections.add(new RoadIntersection(tokens[1],
-							tokens[2], tokens[3]));
-				} else if (tokens[0].equals("r")) {
-					roads.add(new Road(tokens[1], tokens[2], tokens[3]));
+				ls = new Scanner(line);
+				String prefix = ls.next();
+				if (prefix.equals("i")) {
+					roadIntersections.add(new RoadIntersection(ls.next(), ls.next(), ls.next()));
+				} else if (prefix.equals("r")) {
+					roads.add(new Road(ls.next(), ls.next(), ls.next()));
 				}
+//				String delim = "";
+//				String line = sc.nextLine();
+//				delim = (line.contains("\t") ? "\t" : " ");
+//				tokens = line.split(delim);
+//				for (String t : tokens) 
+//					t.trim();
+//				if (tokens[0].equals("i")) {
+//					roadIntersections.add(new RoadIntersection(tokens[1],
+//							tokens[2], tokens[3]));
+//				} else if (tokens[0].equals("r")) {
+//					roads.add(new Road(tokens[1], tokens[2], tokens[3]));
+//				}
+				
 
 				progressNumber++;
 				setProgress((int) (((double) progressNumber / count) * 100));
 				
 
 			}
-
+			ls.close();
 			sc.close();
 
 			return new Map(roads, roadIntersections);

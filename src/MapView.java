@@ -446,7 +446,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			Collections.sort(path);
 			System.out.println("Printing as vertices");
 			printPathAsVertices(path, 0);
-			System.out.println("Printing as roads");
+			System.out.println("\nPrinting as roads");
 			printPathAsRoads(path);
 		}
 		private void printPathAsVertices(List<RoadIntersection> path, int index) {
