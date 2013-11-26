@@ -14,6 +14,7 @@ import java.util.concurrent.ExecutionException;
 import javax.imageio.ImageIO;
 import javax.swing.ButtonGroup;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SpringLayout;
 import javax.swing.JProgressBar;
@@ -21,6 +22,7 @@ import javax.swing.SwingWorker;
 import javax.swing.Timer;
 import javax.swing.JCheckBox;
 import javax.swing.JRadioButton;
+import javax.swing.JButton;
 
 @SuppressWarnings("serial")
 public class MapView extends JPanel implements ActionListener, ItemListener{
@@ -54,6 +56,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 	private JPanel settingsPanel;
 	private JRadioButton drawPoints;
 	private JRadioButton drawLines;
+	private JButton enterIntersectionsButton;
 	
 	//fair game hashing to last things
 	//12/05 quiz test exa,?
@@ -63,6 +66,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		loadBackgroundImage();
 		setupComponents();
 		timer = new Timer(20, this);
+		
+		
 		flags = EnumSet.of(
 				DrawModes.RENDER_FANCY, 
 				DrawModes.RENDER_AS_LINES,
@@ -77,6 +82,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		springLayout = new SpringLayout();
 		setLayout(springLayout);
 
+		
 		
 		/* Settings Panel */
 		settingsPanel = new JPanel();
@@ -116,6 +122,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		drawLines.setActionCommand("drawLines");
 		drawLines.addActionListener(this);
 		
+		
 		/* Button Group for radios */
 		ButtonGroup radios = new ButtonGroup();
 		radios.add(drawPoints);
@@ -154,7 +161,13 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		progressLabel.setForeground(Color.GREEN);
 		add(progressLabel);
 		
-		
+		/* Direct Intersection Entry Button */
+		enterIntersectionsButton = new JButton("Enter Intersections");
+		springLayout.putConstraint(SpringLayout.SOUTH, enterIntersectionsButton, 25, SpringLayout.NORTH, progressBar);
+		springLayout.putConstraint(SpringLayout.EAST, enterIntersectionsButton, 0, SpringLayout.EAST, settingsPanel);
+		enterIntersectionsButton.setVisible(false);
+		enterIntersectionsButton.addActionListener(this);
+		add(enterIntersectionsButton);
 	
 		
 	}
@@ -183,7 +196,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		Font font = new Font("Arial", Font.PLAIN, 20);
 		g2.setFont(font);
 		g2.setColor(Color.WHITE);
-	//ANALYSZE CLSOENESS
+	
 		//Antialiasing
 		if (flags.contains(DrawModes.RENDER_FANCY))
 			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -298,6 +311,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 
 		@Override
 		public void mouseClicked(MouseEvent e) {
+			
 			if (pointA == null) {
 				pointA = closestPoint;
 			} else
@@ -425,10 +439,42 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 				Line2D line = new Line2D.Double(a.getX(), a.getY(), b.getX(), b.getY());
 				shortestPath.add(line);
 			}
-
+			printPath(path);
 			return dest.distance;
 		}
+		private void printPath(List<RoadIntersection> path) {
+			Collections.sort(path);
+			System.out.println("Printing as vertices");
+			printPathAsVertices(path, 0);
+			System.out.println("Printing as roads");
+			printPathAsRoads(path);
+		}
+		private void printPathAsVertices(List<RoadIntersection> path, int index) {
+			String suffix = (index == path.size() - 1 ? "." : " to ");
+			System.out.print(path.get(index).getId() + suffix);
+			if (index < path.size() - 1)
+				printPathAsVertices(path, index + 1);
+			
+		}
 		
+		private void printPathAsRoads(List<RoadIntersection> path) {
+			List<String> roads = new ArrayList<String>();
+			List<IntersectionPair> ipairs = new ArrayList<IntersectionPair>(mapGraph.getEdges()); 
+			for (int i = 0; i < path.size()-1; i++) {
+				RoadIntersection a = path.get(i);
+				RoadIntersection b = path.get(i+1);
+				IntersectionPair ip = new IntersectionPair(a, b);
+				IntersectionPair temp = ipairs.get(ipairs.indexOf(ip));
+				roads.add(temp.getId());
+			}
+			
+			for (int i = 0; i < roads.size(); i++) {
+				String suffix = (i == roads.size() - 1 ? "." : " to ");
+				System.out.print(roads.get(i) + suffix);
+			}
+			
+		}
+
 		protected void done() {
 			try {
 				double distance = get();
@@ -465,6 +511,27 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 				repaint();
 			}
 		}
+		
+		if (e.getSource() == enterIntersectionsButton) {
+			String aId = JOptionPane.showInputDialog("Enter an ID", "i212602056");
+			String bId = JOptionPane.showInputDialog("Enter another ID", "i212602355");
+			pointA = new RoadIntersection(aId);
+			pointB = new RoadIntersection(bId);
+			
+			if (snapPoints.contains(pointA) && snapPoints.contains(pointB)) {
+				pointA = snapPoints.get(snapPoints.indexOf(pointA));
+				pointB = snapPoints.get(snapPoints.indexOf(pointB));
+				new DijkstraWorker().execute();
+				
+				repaint();
+				
+			} else {
+				pointA = null;
+				pointB = null;
+				shortestPath = null;
+				JOptionPane.showMessageDialog(this, "Your inputed intersection IDs were not found.");
+			}
+		}
 	}
 	
 	
@@ -492,7 +559,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		showMstCheckbox.setVisible(true);
 		drawLines.setVisible(true);
 		drawPoints.setVisible(true);
-		
+		enterIntersectionsButton.setVisible(true);
 	}
 	
 	public void setProgress(String s) {

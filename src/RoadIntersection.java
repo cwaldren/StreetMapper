@@ -7,11 +7,13 @@ public class RoadIntersection implements Comparable<RoadIntersection> {
 	public double distance;
 	public boolean visited;
 	public RoadIntersection previous;
-	
+	private Node n;
 	private String id;
 	double x;
 	double y;
 	
+	public void setNode(Node n) {this.n = n;}
+	public Node getNode() {return this.n;}
 	public void addNeighbor(RoadIntersection r) {
 		neighbors.add(r);
 	}
@@ -71,20 +73,18 @@ public class RoadIntersection implements Comparable<RoadIntersection> {
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (Double.doubleToLongBits(x) != Double.doubleToLongBits(other.x))
-			return false;
-		if (Double.doubleToLongBits(y) != Double.doubleToLongBits(other.y))
-			return false;
+		
 		return true;
 	}
 
 	@Override
+	//small.compareTo(big)
 	public int compareTo(RoadIntersection arg0) {
 		RoadIntersection other = arg0;
 		if (other.distance > distance)
-			return 1;
-		if (other.distance < distance) 
 			return -1;
+		if (other.distance < distance) 
+			return 1;
 		return 0;
 	}
 

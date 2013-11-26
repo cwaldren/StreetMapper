@@ -39,7 +39,7 @@ public class MapController extends JPanel implements PropertyChangeListener {
 		for (Road r : map.getRoads()) {
 			RoadIntersection r1 = intersections.get(r.getIntersectionIdA());
 			RoadIntersection r2 = intersections.get(r.getIntersectionIdB());
-			roads.put(r.getId(), new IntersectionPair(r1, r2));
+			roads.put(r.getId(), new IntersectionPair(r1, r2, r.getId()));
 		}
 
 		List<Line2D> viewRoads = new ArrayList<Line2D>();

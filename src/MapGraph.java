@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -7,12 +8,14 @@ public class MapGraph  {
 	private List<RoadIntersection> vertices;
 	private List<Road> edges;
 
+	private HashMap<String, IntersectionPair> ipairs;
 	private HashMap<String, RoadIntersection> intersections;
 	
 	public MapGraph(Map map, HashMap<String, IntersectionPair> roads, HashMap<String, RoadIntersection> intersections) {
 		this.vertices = map.getRoadIntersections();
 		this.edges = new ArrayList<Road>(map.getRoads());
 		this.intersections = intersections;
+		ipairs = roads;
 		calculateAdjacencies();
 	}
 	
@@ -31,6 +34,10 @@ public class MapGraph  {
 
 	public List<RoadIntersection> getVertices() {
 		return vertices;
+	}
+	
+	public Collection<IntersectionPair> getEdges() {
+		return ipairs.values();
 	}
 	
 
