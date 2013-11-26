@@ -1,45 +1,35 @@
-import java.awt.AlphaComposite;
-import java.awt.BasicStroke;
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
+import javax.swing.ButtonGroup;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SpringLayout;
 import javax.swing.JProgressBar;
 import javax.swing.SwingWorker;
 import javax.swing.Timer;
+import javax.swing.JCheckBox;
+import javax.swing.JRadioButton;
 
 @SuppressWarnings("serial")
-public class MapView extends JPanel implements ActionListener {
+public class MapView extends JPanel implements ActionListener, ItemListener{
 	private Image bg;
-
-	private JLabel info;
-	private JProgressBar progressBar;
-	private JLabel progressLabel;
-
+	
 	private List<Line2D> roads;
 	private List<RoadIntersection> snapPoints;
 	private List<Line2D> shortestPath;
+	private List<Line2D> spanningPath;
 	private List<RoadIntersection> adjPoints;
 	private float alpha;
 	private double mouseX, mouseY;
@@ -50,26 +40,94 @@ public class MapView extends JPanel implements ActionListener {
 	private Timer timer;
 	private MapGraph mapGraph;
 	private enum DrawModes {
-		RENDER_ADJ, RENDER_AS_POINTS, RENDER_AS_LINES, RENDER_FANCY, RENDER_SHORTEST_PATH
+		RENDER_ADJ, RENDER_AS_POINTS, RENDER_AS_LINES, RENDER_FANCY, RENDER_SHORTEST_PATH, RENDER_SPANNING_TREE
 	}
 	
 	private EnumSet<DrawModes> flags;
+	private SpringLayout springLayout;
 	
+
+	private JLabel info;
+	private JProgressBar progressBar;
+	private JLabel progressLabel;
+	private JCheckBox showMstCheckbox;
+	private JPanel settingsPanel;
+	private JRadioButton drawPoints;
+	private JRadioButton drawLines;
+	
+	//fair game hashing to last things
+	//12/05 quiz test exa,?
 	public MapView() throws IOException {
 		addMouseMotionListener(new MouseHandler());
 		addMouseListener(new MouseHandler());
 		loadBackgroundImage();
 		setupComponents();
 		timer = new Timer(20, this);
+		flags = EnumSet.of(
+				DrawModes.RENDER_FANCY, 
+				DrawModes.RENDER_AS_LINES,
+				DrawModes.RENDER_SHORTEST_PATH
+		);
+		
 		alpha = 1f;
-
 	}
 
 
 	private void setupComponents() throws IOException {
-		SpringLayout springLayout = new SpringLayout();
+		springLayout = new SpringLayout();
 		setLayout(springLayout);
 
+		
+		/* Settings Panel */
+		settingsPanel = new JPanel();
+		settingsPanel.setOpaque(false);
+		settingsPanel.setBackground(Color.GREEN);
+		springLayout.putConstraint(SpringLayout.NORTH, settingsPanel, 0, SpringLayout.NORTH, this);
+		springLayout.putConstraint(SpringLayout.WEST, settingsPanel, 520, SpringLayout.WEST, this);
+		springLayout.putConstraint(SpringLayout.SOUTH, settingsPanel, 100, SpringLayout.NORTH, this);
+		springLayout.putConstraint(SpringLayout.EAST,settingsPanel, 0, SpringLayout.EAST, this);
+		add(settingsPanel);
+		
+		/* Show MST Checkbox */
+		showMstCheckbox = new JCheckBox("Show MST");
+		showMstCheckbox.setOpaque(false);
+		showMstCheckbox.setEnabled(false);
+		showMstCheckbox.setVisible(false);
+		springLayout.putConstraint(SpringLayout.NORTH,showMstCheckbox, 0, SpringLayout.NORTH, this);
+		springLayout.putConstraint(SpringLayout.EAST, showMstCheckbox, 0, SpringLayout.EAST, this);
+		showMstCheckbox.addItemListener(this);
+		settingsPanel.add(showMstCheckbox);
+		
+		/* Radio Button for drawing as Points */
+		drawPoints = new JRadioButton("Draw Points");
+		settingsPanel.add(drawPoints);
+		drawPoints.setOpaque(false);
+		drawPoints.setVisible(false);
+		drawPoints.setActionCommand("drawPoints");
+		drawPoints.addActionListener(this);
+		
+		/* Radio Button for drawing as Lines */
+		drawLines = new JRadioButton("Draw Roads");
+		settingsPanel.add(drawLines);
+		drawLines.setSelected(true);
+		drawLines.setOpaque(false);
+		springLayout.putConstraint(SpringLayout.NORTH, drawPoints, 6, SpringLayout.SOUTH, drawLines);
+		drawLines.setVisible(false);
+		drawLines.setActionCommand("drawLines");
+		drawLines.addActionListener(this);
+		
+		/* Button Group for radios */
+		ButtonGroup radios = new ButtonGroup();
+		radios.add(drawPoints);
+		radios.add(drawLines);
+		
+		
+		springLayout.putConstraint(SpringLayout.WEST, drawPoints, 0, SpringLayout.WEST, showMstCheckbox);
+		springLayout.putConstraint(SpringLayout.NORTH, drawLines, 13, SpringLayout.SOUTH, showMstCheckbox);
+		springLayout.putConstraint(SpringLayout.WEST, drawLines, 0, SpringLayout.WEST, showMstCheckbox);
+		
+		
+		
 		/* Mouse Info */
 		info = new JLabel("Info: ");
 		info.setBackground(Color.WHITE);
@@ -91,12 +149,14 @@ public class MapView extends JPanel implements ActionListener {
 
 		/* Progress Label */
 		progressLabel = new JLabel("Parsing..");
+		springLayout.putConstraint(SpringLayout.NORTH, progressLabel, 0, SpringLayout.NORTH, progressBar);
+		springLayout.putConstraint(SpringLayout.EAST, progressLabel, -6, SpringLayout.WEST, progressBar);
 		progressLabel.setForeground(Color.GREEN);
-		springLayout.putConstraint(SpringLayout.SOUTH, progressLabel, 0,
-				SpringLayout.SOUTH, info);
-		springLayout.putConstraint(SpringLayout.EAST, progressLabel, -6,
-				SpringLayout.WEST, progressBar);
 		add(progressLabel);
+		
+		
+	
+		
 	}
 
 	
@@ -106,28 +166,24 @@ public class MapView extends JPanel implements ActionListener {
 	private void paintBackground(Graphics2D g2) {
 		AffineTransform t = new AffineTransform();
 		t.translate(0, 0);
-		t.scale(.8, 1);
+		t.scale(.84, 1);
 		g2.drawImage(bg, t, null);
 	}
 
 	public void paintComponent(Graphics g) {
-		flags = EnumSet.of(
-				DrawModes.RENDER_FANCY, 
-				DrawModes.RENDER_AS_LINES,
-				DrawModes.RENDER_SHORTEST_PATH
-		);
 		
 		super.paintComponent(g);
 	
 		//Setup the context and draw the bg picture
 		Graphics2D g2 = (Graphics2D) g;
+		
 		paintBackground(g2);
 		
 		//Font in case we want to display some stuff
-		Font font = new Font("Arial", Font.PLAIN, 12);
+		Font font = new Font("Arial", Font.PLAIN, 20);
 		g2.setFont(font);
 		g2.setColor(Color.WHITE);
-	
+	//ANALYSZE CLSOENESS
 		//Antialiasing
 		if (flags.contains(DrawModes.RENDER_FANCY))
 			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -152,12 +208,21 @@ public class MapView extends JPanel implements ActionListener {
 				for (RoadIntersection r : snapPoints) {
 					g2.setColor(Color.RED);
 					Ellipse2D.Double circle = new Ellipse2D.Double((int) r.x
-							, (int) r.y , 1, 1);
+							, (int) r.y , 1.5, 1.5);
 					g2.fill(circle);
 				}
 			}
 		}
-		
+		if (flags.contains(DrawModes.RENDER_SPANNING_TREE)) {
+			if (spanningPath != null) {
+				g2.setColor(Color.GREEN);
+				g2.setStroke(new BasicStroke(3));
+				for (Line2D r : spanningPath) {
+					g2.draw(r);
+				}
+			}
+			
+		}
 		if (flags.contains(DrawModes.RENDER_SHORTEST_PATH)) {
 			if (shortestPath != null) {
 				g2.setColor(Color.YELLOW);
@@ -167,6 +232,8 @@ public class MapView extends JPanel implements ActionListener {
 				}
 			}
 		}
+		
+		
 
 		
 		if (flags.contains(DrawModes.RENDER_ADJ)) {
@@ -237,6 +304,7 @@ public class MapView extends JPanel implements ActionListener {
 			if (pointA != null && pointB == null) {
 				pointB = closestPoint;
 				new DijkstraWorker().execute();
+				repaint();
 			} else 
 			if (pointA != null && pointB != null) {
 				shortestPath = null;
@@ -252,7 +320,6 @@ public class MapView extends JPanel implements ActionListener {
 		@Override
 		public void mouseDragged(MouseEvent e) {
 			update(e);
-			
 		}
 
 		@Override
@@ -273,9 +340,49 @@ public class MapView extends JPanel implements ActionListener {
 
 		}
 	}
+	
+	private class KruskalWorker extends SwingWorker<List<IntersectionPair>, Void> {
+	
+		@Override
+		protected List<IntersectionPair> doInBackground() throws Exception {
+	
+			
+			List<IntersectionPair> roads = new ArrayList<IntersectionPair>(mapGraph.getEdges());
+			DisjointSet ds = new DisjointSet(snapPoints);
+			List<IntersectionPair> spanningTree = new ArrayList<IntersectionPair>();
+			Collections.sort(roads);
+			
+			for (IntersectionPair p : roads) {
+				RoadIntersection u = p.getA();
+				RoadIntersection v = p.getB();
+				if (ds.find(u.getNode()) != ds.find(v.getNode())) {
+					spanningTree.add(p);
+					ds.union(u.getNode(), v.getNode());
+				}
+	
+			}
+			return spanningTree;
+		}
+		
+		protected void done() {
+			try {
+				List<IntersectionPair> result = get();
+				spanningPath = new ArrayList<Line2D>();
+				for (IntersectionPair p : result) {
+					Line2D line = new Line2D.Double(p.getA().x, p.getA().y, p.getB().x, p.getB().y);
+					spanningPath.add(line);
+				}
+				showMstCheckbox.setEnabled(true);
+				
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
+	
 
-	
-	
 	private class DijkstraWorker extends SwingWorker<Double, Void> {
 		
 		@Override
@@ -325,15 +432,17 @@ public class MapView extends JPanel implements ActionListener {
 		protected void done() {
 			try {
 				double distance = get();
+				
 				String dist = (distance == Integer.MAX_VALUE ? "unreachable" : Double.toString(distance));
 				info.setText("A (" + pointA.getId() + ") to B (" + pointB.getId() + ") distance: " + dist);
-				
+				repaint();
 			} catch (InterruptedException | ExecutionException e) {
 				e.printStackTrace();
 			}
 		}
 		
 	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		alpha += 0.03f;
@@ -342,6 +451,32 @@ public class MapView extends JPanel implements ActionListener {
 			timer.stop();
 		}
 		repaint();
+		
+		if (e.getSource() == drawLines || e.getSource() == drawPoints) {
+			if (e.getActionCommand().equals("drawLines")) {
+				flags.add(DrawModes.RENDER_AS_LINES);
+				flags.remove(DrawModes.RENDER_AS_POINTS);
+				repaint();
+			}
+			
+			if (e.getActionCommand().equals("drawPoints")) {
+				flags.add(DrawModes.RENDER_AS_POINTS);
+				flags.remove(DrawModes.RENDER_AS_LINES);
+				repaint();
+			}
+		}
+	}
+	
+	
+	public void itemStateChanged(ItemEvent e) {
+	    if (e.getStateChange() == ItemEvent.SELECTED) {
+	    	flags.add(DrawModes.RENDER_SPANNING_TREE);
+	    	repaint();
+	    } else
+	    if (e.getStateChange() == ItemEvent.DESELECTED) {
+	    	flags.remove(DrawModes.RENDER_SPANNING_TREE);
+	    	repaint();
+	    }
 	}
 
 	public void setPoints(List<RoadIntersection> snapPoints) {
@@ -352,7 +487,12 @@ public class MapView extends JPanel implements ActionListener {
 		this.roads = roads;
 		progressBar.setVisible(false);
 		progressLabel.setVisible(false);
+		
 		info.setVisible(true);
+		showMstCheckbox.setVisible(true);
+		drawLines.setVisible(true);
+		drawPoints.setVisible(true);
+		
 	}
 	
 	public void setProgress(String s) {
@@ -387,6 +527,7 @@ public class MapView extends JPanel implements ActionListener {
 	
 	public void setGraph(MapGraph graph) {
 		this.mapGraph = graph;
+		KruskalWorker k = new KruskalWorker();
+		k.execute();
 	}
-
 }
