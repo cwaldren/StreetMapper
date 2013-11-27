@@ -1,4 +1,9 @@
-
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
 public class Road {
 	private String id;
 	private String intersectionIdA;

@@ -1,4 +1,9 @@
-
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
 public class IntersectionPair implements Comparable<IntersectionPair> {
 	private RoadIntersection a;
 	private RoadIntersection b;
@@ -15,6 +20,8 @@ public class IntersectionPair implements Comparable<IntersectionPair> {
 		a = lhs;
 		b = rhs;
 	   distance = Math.sqrt(Math.pow(a.x - b.x, 2)+ Math.pow(a.y - b.y, 2));
+	   
+	   //Id is stored so we can get a road from a pair 
 	   roadId = id;
 	}
  

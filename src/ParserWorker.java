@@ -1,7 +1,10 @@
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -21,8 +24,8 @@ public class ParserWorker extends SwingWorker<Map, Integer> {
 
 	public ParserWorker(String file) {
 		fileName = file;
-		roadIntersections = new ArrayList<RoadIntersection>(19203);
-		roads = new ArrayList<Road>(19824);
+		roadIntersections = new ArrayList<RoadIntersection>();
+		roads = new ArrayList<Road>();
 		progressNumber = 0;
 	}
 
@@ -30,9 +33,9 @@ public class ParserWorker extends SwingWorker<Map, Integer> {
 		return roads;
 	}
 
+	//Very fast method to find the file line size so the progress bar has a reference
 	public int count() throws IOException {
-		InputStream is = new BufferedInputStream(new FileInputStream("src/"
-				+ fileName));
+		InputStream is = new BufferedInputStream(ParserWorker.this.getClass().getResourceAsStream(fileName));
 		try {
 			byte[] c = new byte[1024];
 			int count = 0;
@@ -59,38 +62,28 @@ public class ParserWorker extends SwingWorker<Map, Integer> {
 		InputStream is;
 		setProgress(0);
 
-		try {
-			is = new FileInputStream(new File("src/" + fileName));
-			sc = new Scanner(is);
-			Scanner ls = new Scanner("");
-			while (sc.hasNextLine()) {
-				String line = sc.nextLine();
-				ls = new Scanner(line);
-				String prefix = ls.next();
-				if (prefix.equals("i")) {
-					roadIntersections.add(new RoadIntersection(ls.next(), ls.next(), ls.next()));
-				} else if (prefix.equals("r")) {
-					roads.add(new Road(ls.next(), ls.next(), ls.next()));
-				}
-
-				progressNumber++;
-				setProgress((int) (((double) progressNumber / count) * 100));
-				
-
+		is = ParserWorker.this.getClass().getResourceAsStream(fileName);
+		//is = new FileInputStream(new File("src/" + fileName));
+		sc = new Scanner(is);
+		Scanner ls = new Scanner("");
+		while (sc.hasNextLine()) {
+			String line = sc.nextLine();
+			ls = new Scanner(line);
+			String prefix = ls.next();
+			if (prefix.equals("i")) {
+				roadIntersections.add(new RoadIntersection(ls.next(), ls.next(), ls.next()));
+			} else if (prefix.equals("r")) {
+				roads.add(new Road(ls.next(), ls.next(), ls.next()));
 			}
-			ls.close();
-			sc.close();
 
-			return new Map(roads, roadIntersections);
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			return null;
+			progressNumber++;
+			setProgress((int) (((double) progressNumber / count) * 100));
+			
 
 		}
+		ls.close();
+		sc.close();
 
+		return new Map(roads, roadIntersections);
 	}
-
-	
-
 }

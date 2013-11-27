@@ -1,3 +1,9 @@
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
 import java.awt.geom.Line2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -25,10 +31,12 @@ public class MapController extends JPanel implements PropertyChangeListener {
 
 	}
 
+	//When given control, start the chain of events by executing the parser
 	public void control() {
 		parser.execute();
 	}
 
+	
 	private void processForView() throws InterruptedException, ExecutionException {
 		map = parser.get();
 		
@@ -68,7 +76,7 @@ public class MapController extends JPanel implements PropertyChangeListener {
 		view.setGraph(graph);
 	}
 
-	
+	//Whenever a progress event is sent out, update the view's bar, and if it is done, then process everything
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if ("progress".equals(evt.getPropertyName())) {

@@ -1,19 +1,27 @@
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
 import java.util.ArrayList;
 import java.util.List;
 
 
 public class RoadIntersection implements Comparable<RoadIntersection> {
 	private List<RoadIntersection> neighbors;
-	public double distance;
-	public boolean visited;
 	public RoadIntersection previous;
 	private Node n;
 	private String id;
-	double x;
-	double y;
+	public double x;
+	public double y;
+	public double distance;
+	public boolean visited;
 	
 	public void setNode(Node n) {this.n = n;}
+	
 	public Node getNode() {return this.n;}
+	
 	public void addNeighbor(RoadIntersection r) {
 		neighbors.add(r);
 	}
@@ -78,7 +86,7 @@ public class RoadIntersection implements Comparable<RoadIntersection> {
 	}
 
 	@Override
-	//small.compareTo(big)
+	//This right here...I originally had it return 1 for -1 and -1 for 1. It screwed up everything. I was stumped for hours.
 	public int compareTo(RoadIntersection arg0) {
 		RoadIntersection other = arg0;
 		if (other.distance > distance)

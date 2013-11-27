@@ -1,28 +1,23 @@
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
 
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.ExecutionException;
-
 import javax.imageio.ImageIO;
-import javax.swing.ButtonGroup;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.SpringLayout;
-import javax.swing.JProgressBar;
-import javax.swing.SwingWorker;
-import javax.swing.Timer;
-import javax.swing.JCheckBox;
-import javax.swing.JRadioButton;
-import javax.swing.JButton;
+import javax.swing.*;
 
 @SuppressWarnings("serial")
 public class MapView extends JPanel implements ActionListener, ItemListener{
@@ -33,17 +28,22 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 	private List<Line2D> shortestPath;
 	private List<Line2D> spanningPath;
 	private List<RoadIntersection> adjPoints;
-	private float alpha;
-	private double mouseX, mouseY;
-
+	
 	private RoadIntersection pointA;
 	private RoadIntersection pointB;
 	private RoadIntersection closestPoint;
+	
 	private Timer timer;
+	
 	private MapGraph mapGraph;
+	
 	private enum DrawModes {
 		RENDER_ADJ, RENDER_AS_POINTS, RENDER_AS_LINES, RENDER_FANCY, RENDER_SHORTEST_PATH, RENDER_SPANNING_TREE
 	}
+	
+	private float alpha;
+	private double mouseX, mouseY;
+
 	
 	private EnumSet<DrawModes> flags;
 	private SpringLayout springLayout;
@@ -58,16 +58,20 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 	private JRadioButton drawLines;
 	private JButton enterIntersectionsButton;
 	
-	//fair game hashing to last things
-	//12/05 quiz test exa,?
+	
 	public MapView() throws IOException {
 		addMouseMotionListener(new MouseHandler());
 		addMouseListener(new MouseHandler());
 		loadBackgroundImage();
 		setupComponents();
+		
+		//Fallback if background image fails to load (shouldn't happen)
+		setBackground(Color.DARK_GRAY);
+		
+		//Timer used to fade in the map
 		timer = new Timer(20, this);
 		
-		
+		//You can change these flags for testing but the UI allows a user to modify them
 		flags = EnumSet.of(
 				DrawModes.RENDER_FANCY, 
 				DrawModes.RENDER_AS_LINES,
@@ -79,6 +83,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 
 
 	private void setupComponents() throws IOException {
+		//Setup the entire layout
+		
 		springLayout = new SpringLayout();
 		setLayout(springLayout);
 
@@ -169,7 +175,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		enterIntersectionsButton.addActionListener(this);
 		add(enterIntersectionsButton);
 	
-		
+		//End layout
 	}
 
 	
@@ -177,6 +183,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 
 
 	private void paintBackground(Graphics2D g2) {
+		//This code attempts to reconcile the data with an image from Google Earth.
+		//It's okay, I guess
 		AffineTransform t = new AffineTransform();
 		t.translate(0, 0);
 		t.scale(.84, 1);
@@ -204,9 +212,10 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		//Setup map fade in
 		g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
 		
-		//Offset so stuff lines up properly
+		//Offset so dots line up properly
 		final int offset = 4;
 		
+		/* Render Roads */
 		if (flags.contains(DrawModes.RENDER_AS_LINES)) {
 			if (roads != null) {
 				g2.setStroke(new BasicStroke(1));
@@ -215,7 +224,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 				}
 			}
 		}
-			
+		
+		/* Render Intersections */
 		if (flags.contains(DrawModes.RENDER_AS_POINTS)) {
 			if (snapPoints != null) {
 				for (RoadIntersection r : snapPoints) {
@@ -226,6 +236,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 				}
 			}
 		}
+		
+		/* Render the Minimum Spanning Tree */
 		if (flags.contains(DrawModes.RENDER_SPANNING_TREE)) {
 			if (spanningPath != null) {
 				g2.setColor(Color.GREEN);
@@ -236,6 +248,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			}
 			
 		}
+		
+		/* Render the shortest path */
 		if (flags.contains(DrawModes.RENDER_SHORTEST_PATH)) {
 			if (shortestPath != null) {
 				g2.setColor(Color.YELLOW);
@@ -247,8 +261,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		}
 		
 		
-
-		
+		/* Render adjacent nodes - for testing purposes */
 		if (flags.contains(DrawModes.RENDER_ADJ)) {
 			if (adjPoints != null) {
 				StringBuilder sb = new StringBuilder();
@@ -263,6 +276,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			}
 		}
 
+		//The following code renders the closest snapping point, the Point A, and the Point B
 		
 		if (closestPoint != null) {
 			g2.setColor(Color.RED);
@@ -274,7 +288,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		if (pointA != null) {
 			int size = flags.contains(DrawModes.RENDER_ADJ) ? 5 : 10;
 			g2.setColor(Color.YELLOW);
-			g2.drawString("A", (int)pointA.x+10, (int)pointA.y);
+			g2.drawString("A", (int)pointA.x + 10, (int)pointA.y);
 			
 			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointA.x
 					- offset, (int) pointA.y - offset, size, size);
@@ -284,7 +298,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		if (pointB != null) {
 			int size = flags.contains(DrawModes.RENDER_ADJ) ? 5 : 10;
 			g2.setColor(Color.YELLOW);
-			g2.drawString("B", (int)pointB.x+10, (int)pointB.y);
+			g2.drawString("B", (int)pointB.x + 10, (int)pointB.y);
 			Ellipse2D.Double circle = new Ellipse2D.Double((int) pointB.x
 					- offset, (int) pointB.y - offset, size, size);
 			g2.fill(circle);
@@ -299,7 +313,9 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 
 	private void loadBackgroundImage() {
 		try {
-			bg = ImageIO.read(new File("src/roch.png"));
+			//Capital PNG because Windows
+			InputStream in = getClass().getResourceAsStream("roch.PNG");
+			bg = ImageIO.read(in);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -311,7 +327,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 
 		@Override
 		public void mouseClicked(MouseEvent e) {
-			
+			//Logic to determine when to draw the points A & B
 			if (pointA == null) {
 				pointA = closestPoint;
 			} else
@@ -325,8 +341,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 				pointB = null;
 				pointA = closestPoint;
 			}
-			
-		   adjPoints = closestPoint.getNeighbors();
+			 
+			adjPoints = closestPoint.getNeighbors();
 		
 			
 		}
@@ -355,11 +371,11 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		}
 	}
 	
+	//This swingworker is run only once to generate the MST
 	private class KruskalWorker extends SwingWorker<List<IntersectionPair>, Void> {
 	
 		@Override
 		protected List<IntersectionPair> doInBackground() throws Exception {
-	
 			
 			List<IntersectionPair> roads = new ArrayList<IntersectionPair>(mapGraph.getEdges());
 			DisjointSet ds = new DisjointSet(snapPoints);
@@ -380,6 +396,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		
 		protected void done() {
 			try {
+				//Convert the list to something usable to render
 				List<IntersectionPair> result = get();
 				spanningPath = new ArrayList<Line2D>();
 				for (IntersectionPair p : result) {
@@ -396,7 +413,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 	}
 	
 	
-
+	//This swingworker is run whenever a Point B is selected. 
 	private class DijkstraWorker extends SwingWorker<Double, Void> {
 		
 		@Override
@@ -418,6 +435,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			
 			while (!q.isEmpty()) {
 				RoadIntersection u = q.poll();
+				if (u.equals(dest))
+					break;
 				u.visited = true;
 				
 				for (RoadIntersection v : u.getNeighbors()) {
@@ -431,6 +450,8 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			}
 			shortestPath = new ArrayList<Line2D>();
 			List<RoadIntersection> path = new ArrayList<RoadIntersection>();
+			
+			//Convert the data to something renderable
 			for (RoadIntersection r = dest; r != null; r = r.previous)
 	            path.add(r);
 			for (int i = 0; i < path.size()-1; i++) {
@@ -439,9 +460,12 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 				Line2D line = new Line2D.Double(a.getX(), a.getY(), b.getX(), b.getY());
 				shortestPath.add(line);
 			}
+			
+			//Print the path to standard output as vertexes and roads list
 			printPath(path);
 			return dest.distance;
 		}
+		
 		private void printPath(List<RoadIntersection> path) {
 			Collections.sort(path);
 			System.out.println("Printing as vertices");
@@ -449,12 +473,12 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			System.out.println("\nPrinting as roads");
 			printPathAsRoads(path);
 		}
+		
 		private void printPathAsVertices(List<RoadIntersection> path, int index) {
 			String suffix = (index == path.size() - 1 ? "." : " to ");
 			System.out.print(path.get(index).getId() + suffix);
 			if (index < path.size() - 1)
 				printPathAsVertices(path, index + 1);
-			
 		}
 		
 		private void printPathAsRoads(List<RoadIntersection> path) {
@@ -478,7 +502,6 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		protected void done() {
 			try {
 				double distance = get();
-				
 				String dist = (distance == Integer.MAX_VALUE ? "unreachable" : Double.toString(distance));
 				info.setText("A (" + pointA.getId() + ") to B (" + pointB.getId() + ") distance: " + dist);
 				repaint();
@@ -491,6 +514,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
+		//Fade in the map
 		alpha += 0.03f;
 		if (alpha >= 1) {
 			alpha = 1;
@@ -498,6 +522,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		}
 		repaint();
 		
+		//Manipulate flags depending on user input
 		if (e.getSource() == drawLines || e.getSource() == drawPoints) {
 			if (e.getActionCommand().equals("drawLines")) {
 				flags.add(DrawModes.RENDER_AS_LINES);
@@ -512,6 +537,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 			}
 		}
 		
+		//Dialog so the user can enter two intersection IDs and a point will be drawn
 		if (e.getSource() == enterIntersectionsButton) {
 			String aId = JOptionPane.showInputDialog("Enter an ID", "i212602056");
 			String bId = JOptionPane.showInputDialog("Enter another ID", "i212602355");
@@ -546,10 +572,12 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 	    }
 	}
 
+	//Set the intersections
 	public void setPoints(List<RoadIntersection> snapPoints) {
 		this.snapPoints = snapPoints;
 	}
 	
+	//Once the roads are set, stuff becomes visible
 	public void setRoads(List<Line2D> roads) {
 		this.roads = roads;
 		progressBar.setVisible(false);
@@ -566,6 +594,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		progressLabel.setText(s);
 	}
 
+	//This is used to update the parser progress bar
 	public void updateProgressBar(int i) {
 		if (i == 100) {
 			timer.start();
@@ -574,6 +603,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		progressBar.setValue(i);
 	}
 	
+	//This method is called constantly when the mouse moves so the dot can snap to lines.
 	private RoadIntersection getClosestPoint() {
 		RoadIntersection closestPoint = null;
 		double closestDistance = Integer.MAX_VALUE;
@@ -587,11 +617,13 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		return closestPoint;
 	}
 	
+	//Helper
 	private double distanceFormula(double x1, double y1, double x2, double y2) {
 		return Math.sqrt(Math.pow(x1 - x2, 2)
 				+ Math.pow(y1 - y2, 2));
 	}
 	
+	//When the graph is first loaded, do kruskals so the user can see it instantly when they check the box
 	public void setGraph(MapGraph graph) {
 		this.mapGraph = graph;
 		KruskalWorker k = new KruskalWorker();

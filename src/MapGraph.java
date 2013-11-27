@@ -1,3 +1,10 @@
+/**
+*Casey Waldren
+*cwaldren@u.rochester.edu
+*TAs Ciaran Downey & Yang Yu
+*Street Mapper
+*/
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
