@@ -15,10 +15,10 @@ public class MapPanel extends JPanel {
 	List<PointPair> pairs;
 	List<RoadIntersection> intersections;
 	
-	public MapPanel() throws IOException, InterruptedException, ExecutionException {
+	public MapPanel(String fileName) throws IOException, InterruptedException, ExecutionException {
 		super(new BorderLayout());
 
-		ParserWorker parser = new ParserWorker("monroe-county.tab");
+		ParserWorker parser = new ParserWorker(fileName);
 		MapView view = new MapView();
 		MapController controller = new MapController(parser, view);
 		controller.control();

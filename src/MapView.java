@@ -136,7 +136,7 @@ public class MapView extends JPanel implements ActionListener, ItemListener{
 		
 		
 		/* Mouse Info */
-		info = new JLabel("Info: ");
+		info = new JLabel("Info: Click two points to show the shortest path.");
 		info.setBackground(Color.WHITE);
 		info.setForeground(Color.WHITE);
 		springLayout.putConstraint(SpringLayout.WEST, info, 5,

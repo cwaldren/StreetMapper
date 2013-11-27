@@ -24,7 +24,7 @@ public class Mapper implements Runnable {
 	private void initUI() throws IOException, InterruptedException, ExecutionException {
 		JFrame frame = new JFrame("Rochester Map");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.add(new MapPanel());
+		frame.add(new MapPanel("monroe-county.tab"));
 		frame.setResizable(false);
 		frame.setSize(650, 600);
 		frame.setLocationRelativeTo(null);
